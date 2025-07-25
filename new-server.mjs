@@ -18,7 +18,7 @@ const transporter = nodemailer.createTransport({
 // Middleware
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
-    ? ['https://your-frontend-url.netlify.app']  // Replace with your actual frontend URL
+    ? ['https://verify-frontend.netlify.app']  // Production frontend URL
     : ['http://localhost:5173'],
   credentials: true
 }));
