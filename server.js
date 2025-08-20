@@ -28,7 +28,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Test route
 app.get('/api/test', (req, res) => {
-  res.json({ message: 'Server is running!' });
+  res.json({ message: 'Server is running! Updated: ' + new Date().toISOString() });
 });
 
 // Email route
