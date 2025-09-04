@@ -31,6 +31,18 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+app.use((req, res, next) => {
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; " +
+    "script-src 'self' https://www.google.com/recaptcha/ https://www.gstatic.com; " +
+    "connect-src 'self' https://verify-backend.onrender.com https://api.ipify.org https://ipapi.co; " +
+    "frame-src https://www.google.com/recaptcha/; " +
+    "img-src 'self' data: https://www.gstatic.com;"
+  );
+  next();
+});
+
 // Test route
 app.get('/api/test', (req, res) => {
   res.json({ message: 'Server is running! Updated: ' + new Date().toISOString() });
