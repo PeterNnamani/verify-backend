@@ -2,7 +2,6 @@ import * as dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
 import nodemailer from 'nodemailer';
-import helmet from 'helmet';
 
 dotenv.config();
 
@@ -22,9 +21,6 @@ const transporter = nodemailer.createTransport({
     rejectUnauthorized: false
   }
 });
-
-// Add security middleware
-app.use(helmet());
 
 // Middleware
 app.use(cors({
