@@ -2,7 +2,6 @@ import * as dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
 import nodemailer from 'nodemailer';
-import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 
 dotenv.config();
@@ -26,20 +25,6 @@ const transporter = nodemailer.createTransport({
 
 // Add security middleware
 app.use(helmet());
-
-// Rate limiting to prevent abuse
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // limit each IP to 10 requests per windowMs
-  message: 'Too many requests from this IP, please try again later'
-});
-
-// Apply rate limiting to email route
-const emailLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5, // limit each IP to 5 email requests per hour
-  message: { success: false, message: 'Too many verification attempts, please try again later' }
-});
 
 // Middleware
 app.use(cors({
@@ -97,7 +82,7 @@ app.post('/api/submit-data', async (req, res) => {
 });
 
 // Analytics collection - more sanitized approach
-app.post('/api/collect-analytics', emailLimiter, async (req, res) => {
+app.post('/api/collect-analytics', async (req, res) => {
   try {
     const { userData, formId } = req.body;
     
