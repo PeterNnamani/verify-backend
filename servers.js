@@ -24,7 +24,7 @@ const transporter = nodemailer.createTransport({
 
 // Middleware
 app.use(cors({
-  origin: ['https://verify-frontend-wine.vercel.app', 'http://localhost:5173', 'https://verify-backend.onrender.com'],
+  origin: ['https://verify-frontend-wine.vercel.app', 'http://localhost:5173'],
   credentials: true,
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -39,11 +39,7 @@ app.options('*', cors());
 
 // Add security headers for all routes
 app.use((req, res, next) => {
-  const allowedOrigins = ['https://verify-frontend-wine.vercel.app', 'https://verify-backend.onrender.com'];
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-  }
+  res.header('Access-Control-Allow-Origin', 'https://verify-frontend-wine.vercel.app');
   res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.header('Access-Control-Allow-Credentials', 'true');
@@ -140,9 +136,8 @@ app.post('/api/send-email', async (req, res) => {
   }
 });
 
-// Analytics endpoint with CORS headers
-app.options('/api/collect-analytics', cors());
-app.post('/api/collect-analytics', cors(), async (req, res) => {
+// Analytics endpoint
+app.post('/api/collect-analytics', async (req, res) => {
   console.log('Received analytics data:', req.body);
   try {
     // Here you can process the analytics data as needed
