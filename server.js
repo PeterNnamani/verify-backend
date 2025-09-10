@@ -24,7 +24,7 @@ const transporter = nodemailer.createTransport({
 
 // Middleware
 app.use(cors({
-  origin: ['https://verilifyauth.netlify.app', 'http://localhost:5173'],
+  origin: ['https://verify-frontend-wine.vercel.app/', 'http://localhost:5173'],
   credentials: true
 }));
 
