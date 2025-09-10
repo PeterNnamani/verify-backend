@@ -1,6 +1,6 @@
 const corsConfig = {
   origin: process.env.NODE_ENV === 'production'
-    ? [process.env.FRONTEND_URL]  // Your deployed frontend URL
+    ? ['https://verify-frontend-wine.vercel.app', 'https://verify-backend.onrender.com']  // Your deployed frontend URL
     : ['http://localhost:5173'],  // Local frontend URL
   credentials: true,
   methods: ['GET', 'POST'],
